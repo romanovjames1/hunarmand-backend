@@ -3,8 +3,14 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
+export async function createNestServer() {
+  const app = await NestFactory.create(AppModule);
+  app.enableCors();
+  return app;
+}
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors();
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -23,4 +29,5 @@ async function bootstrap() {
   SwaggerModule.setup('api-docs', app, documentFactory);
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
-bootstrap();
+
+if (!process.env.VERCEL) bootstrap();
