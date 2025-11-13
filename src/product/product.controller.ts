@@ -24,8 +24,8 @@ import {
 } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { PaginationDto } from 'src/dtos/pagination.query.dto';
-import { Languages } from 'src/enums/language.enum';
-import { JwtGuard } from 'src/guards/jwt.guard';
+import { Languages } from '../enums/language.enum';
+import { JwtGuard } from '../guards/jwt.guard';
 
 @Controller('product')
 export class ProductController {

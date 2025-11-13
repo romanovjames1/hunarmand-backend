@@ -19,9 +19,9 @@ import {
   ApiQuery,
   ApiResponse,
 } from '@nestjs/swagger';
-import { Languages } from 'src/enums/language.enum';
-import { QueryDto } from 'src/dtos/query.dto';
-import { JwtGuard } from 'src/guards/jwt.guard';
+import { Languages } from '../enums/language.enum';
+import { QueryDto } from '../dtos/query.dto';
+import { JwtGuard } from '../guards/jwt.guard';
 
 @Controller('category')
 export class CategoryController {

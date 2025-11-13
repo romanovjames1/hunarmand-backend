@@ -16,7 +16,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CreateAdminAuthDto } from './dto/create-admin-auth.dto';
 import { AdminLoginDto } from './dto/login-auth.dto';
 import express, { Request } from 'express';
-import { JwtGuard } from 'src/guards/jwt.guard';
+import { JwtGuard } from '../guards/jwt.guard';
 
 @Controller('admin-auth')
 export class AdminAuthController {
