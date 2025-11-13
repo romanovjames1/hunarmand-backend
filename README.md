@@ -71,5 +71,4 @@ TOKEN_EXP=jwt token module esxpiration date [string] ex. 1d
 HASH_SALT=password hashing salt [number] ex. 12
 ACCESS_TOKEN_KEY=jwt access token secret key [string] j3@5ifm!
 ACCESS_TOKEN_EXP=jwt access token expiration date [string] 1d
-BASE_URL=base url of the application [string] ex. https://icorp.uz ....
 ```
