@@ -1,8 +1,8 @@
+import 'tsconfig-paths/register';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import 'tsconfig-paths/register';
 
 export async function createNestServer() {
   const app = await NestFactory.create(AppModule);
