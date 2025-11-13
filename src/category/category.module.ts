@@ -4,7 +4,7 @@ import { CategoryController } from './category.controller';
 import { RedisModule } from 'src/redis/redis.module';
 import { Mongoose } from 'mongoose';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Category, CatSchema } from 'src/schemas/category.schema';
+import { Category, CatSchema } from '../schemas/category.schema';
 
 @Module({
   imports: [

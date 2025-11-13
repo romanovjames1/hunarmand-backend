@@ -6,7 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Admin, AdminSchema } from 'src/schemas/admin.schema';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { JwtStrategy } from 'src/strategies/jwt.strategy';
+import { JwtStrategy } from '../strategies/jwt.strategy';
 
 @Module({
   imports: [

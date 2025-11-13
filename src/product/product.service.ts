@@ -10,7 +10,7 @@ import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Category } from 'src/schemas/category.schema';
 import { Model } from 'mongoose';
-import { Product } from 'src/schemas/products.schema';
+import { Product } from '../schemas/products.schema';
 import { PaginationDto } from 'src/dtos/pagination.query.dto';
 import { ApiBadRequestResponse } from '@nestjs/swagger';
 import prismaConfig from 'prisma.config';

@@ -9,7 +9,7 @@ import { multerConfig, multerOptions } from 'src/multer/multer.options';
 import { CloudinaryModule } from 'src/cloudinary/cloudinary.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Category, CatSchema } from 'src/schemas/category.schema';
-import { Product, ProductSchema } from 'src/schemas/products.schema';
+import { Product, ProductSchema } from '../schemas/products.schema';
 
 @Module({
   imports: [
