@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Types } from 'mongoose';
 import { Category } from './category.schema';
-import { Languages } from '@prisma/client';
+import { Languages } from 'src/enums/language.enum';
 
 @Schema()
 export class Product {
