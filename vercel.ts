@@ -1,5 +1,5 @@
-import { createNestServer } from './dist/src/main';
 import serverlessExpress from '@vendia/serverless-express';
+import { createNestServer } from 'src/main';
 
 // Cache server between requests
 let cachedServer: any;
