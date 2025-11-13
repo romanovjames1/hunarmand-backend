@@ -8,8 +8,8 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Category } from '../schemas/category.schema';
 import { Model } from 'mongoose';
-import { RedisService } from 'src/redis/redis.service';
-import { QueryDto } from 'src/dtos/query.dto';
+import { RedisService } from '../redis/redis.service';
+import { QueryDto } from '../dtos/query.dto';
 
 @Injectable()
 export class CategoryService {

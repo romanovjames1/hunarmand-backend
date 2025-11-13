@@ -8,7 +8,7 @@ import { UpdateAdminAuthDto } from './dto/update-admin-auth.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Admin } from '../schemas/admin.schema';
 import { Model } from 'mongoose';
-import { RedisService } from 'src/redis/redis.service';
+import { RedisService } from '../redis/redis.service';
 import { AdminLoginDto } from './dto/login-auth.dto';
 import { addAbortListener } from 'events';
 import * as bcrypt from 'bcryptjs';

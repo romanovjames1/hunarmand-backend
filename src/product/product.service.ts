@@ -5,13 +5,13 @@ import {
 } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { RedisService } from 'src/redis/redis.service';
-import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
+import { RedisService } from '../redis/redis.service';
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { InjectModel } from '@nestjs/mongoose';
-import { Category } from 'src/schemas/category.schema';
+import { Category } from '../schemas/category.schema';
 import { Model } from 'mongoose';
 import { Product } from '../schemas/products.schema';
-import { PaginationDto } from 'src/dtos/pagination.query.dto';
+import { PaginationDto } from '../dtos/pagination.query.dto';
 import { ApiBadRequestResponse } from '@nestjs/swagger';
 import prismaConfig from 'prisma.config';
 import { ProductModule } from './product.module';

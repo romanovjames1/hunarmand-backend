@@ -23,7 +23,7 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { PaginationDto } from 'src/dtos/pagination.query.dto';
+import { PaginationDto } from '../dtos/pagination.query.dto';
 import { Languages } from '../enums/language.enum';
 import { JwtGuard } from '../guards/jwt.guard';
 
