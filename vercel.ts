@@ -1,4 +1,4 @@
-import { createNestServer } from './dist/src/main';
+import { createNestServer } from './src/main';
 import serverlessExpress from '@vendia/serverless-express';
 
 // Cache server between requests
