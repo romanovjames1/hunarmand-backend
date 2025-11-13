@@ -9,25 +9,27 @@ export async function createNestServer() {
   return app;
 }
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.enableCors();
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      transformOptions: { enableImplicitConversion: false },
-    }),
-  );
+  if (!process.env.VERCEL) {
+    const app = await createNestServer();
+    app.enableCors();
+    app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        transformOptions: { enableImplicitConversion: false },
+      }),
+    );
 
-  const config = new DocumentBuilder()
-    .setTitle('Hunarmand backend api')
-    .setVersion('v1')
-    .setDescription('The api only made for Hunarmand!')
-    .addBearerAuth()
-    .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api-docs', app, documentFactory);
-  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+    const config = new DocumentBuilder()
+      .setTitle('Hunarmand backend api')
+      .setVersion('v1')
+      .setDescription('The api only made for Hunarmand!')
+      .addBearerAuth()
+      .build();
+    const documentFactory = () => SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api-docs', app, documentFactory);
+    await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
+  }
 }
 
-if (!process.env.VERCEL) bootstrap();
+bootstrap();
