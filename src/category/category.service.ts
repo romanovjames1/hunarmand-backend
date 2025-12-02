@@ -8,21 +8,21 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Category } from '../schemas/category.schema';
 import { Model } from 'mongoose';
-import { RedisService } from '../redis/redis.service';
+// import { RedisService } from '../redis/redis.service';
 import { QueryDto } from '../dtos/query.dto';
 
 @Injectable()
 export class CategoryService {
   constructor(
     @InjectModel(Category.name) private categoryModel: Model<Category>,
-    private redis: RedisService,
+    // private redis: RedisService,
   ) {}
   // [POST] add categories
   async create(createCategoryDto: CreateCategoryDto) {
     await this.categoryModel.create(createCategoryDto);
 
-    await this.redis.delWithPrefix('products');
-    await this.redis.delWithPrefix('categories');
+    // await this.redis.delWithPrefix('products');
+    // await this.redis.delWithPrefix('categories');
     return 'Successfully created';
   }
 
@@ -42,12 +42,12 @@ export class CategoryService {
 
     let categories: any[];
     let categoriesCount: number;
-    const cacheCategories = await this.redis.get(
-      `categories:page:${page}:${limit}:${language}:${q}`,
-    );
-    const cacheCategoriesCount = await this.redis.get(
-      `categories:count:${language}:${page}:${language}:${q}`,
-    );
+    // const cacheCategories = await this.redis.get(
+    //   `categories:page:${page}:${limit}:${language}:${q}`,
+    // );
+    // const cacheCategoriesCount = await this.redis.get(
+    //   `categories:count:${language}:${page}:${language}:${q}`,
+    // );
 
     let whereOptions = {};
     if (q) whereOptions['title'] = q;
@@ -68,30 +68,30 @@ export class CategoryService {
         .exec(),
     ]);
 
-    if (cacheCategories && cacheCategoriesCount) {
-      categories = JSON.parse(cacheCategories);
-      categoriesCount = +cacheCategoriesCount;
-    } else {
-      categories = categorisDb;
-      categoriesCount = categoriesCountDb;
-    }
+    // if (cacheCategories && cacheCategoriesCount) {
+    //   categories = JSON.parse(cacheCategories);
+    //   categoriesCount = +cacheCategoriesCount;
+    // } else {
+    categories = categorisDb;
+    categoriesCount = categoriesCountDb;
+    // }
 
     if (categorisDb.length === 0)
       throw new NotFoundException('No products found');
 
-    if (categorisDb.length > 0 && categoriesCountDb >= 1) {
-      await this.redis.set(
-        `categories:page:${page}:${limit}:${language}:${q}`,
-        categorisDb,
-        60,
-      );
+    // if (categorisDb.length > 0 && categoriesCountDb >= 1) {
+    //   await this.redis.set(
+    //     `categories:page:${page}:${limit}:${language}:${q}`,
+    //     categorisDb,
+    //     60,
+    //   );
 
-      await this.redis.set(
-        `categories:count:${language}:${page}:${language}:${q}`,
-        categoriesCountDb,
-        60,
-      );
-    }
+    //   await this.redis.set(
+    //     `categories:count:${language}:${page}:${language}:${q}`,
+    //     categoriesCountDb,
+    //     60,
+    //   );
+    // }
 
     const totalPages = Math.ceil(categoriesCount / limit);
     return {
@@ -105,13 +105,13 @@ export class CategoryService {
 
   // [GET] get categories by id
   async findOne(id: string) {
-    const categoryCache = await this.redis.get(`categories:${id}`);
-    if (categoryCache) return JSON.parse(categoryCache);
+    // const categoryCache = await this.redis.get(`categories:${id}`);
+    // if (categoryCache) return JSON.parse(categoryCache);
 
     const categoryDb = await this.categoryModel.findById(id);
     if (!categoryDb) throw new NotFoundException('No category found');
 
-    await this.redis.set(`categories:${id}`, categoryDb, 60);
+    // await this.redis.set(`categories:${id}`, categoryDb, 60);
 
     return categoryDb;
   }
@@ -125,8 +125,8 @@ export class CategoryService {
       updateCategoryDto,
     );
 
-    await this.redis.delWithPrefix('categories');
-    await this.redis.delWithPrefix('products');
+    // await this.redis.delWithPrefix('categories');
+    // await this.redis.delWithPrefix('products');
     return updatedCategoy;
   }
 
@@ -135,8 +135,8 @@ export class CategoryService {
     await this.findOne(id);
 
     await this.categoryModel.findOneAndDelete({ _id: id });
-    await this.redis.delWithPrefix('categories');
-    await this.redis.delWithPrefix('products');
+    // await this.redis.delWithPrefix('categories');
+    // await this.redis.delWithPrefix('products');
     return `Successfully deleted`;
   }
 }

@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AdminAuthService } from './admin-auth.service';
 import { AdminAuthController } from './admin-auth.controller';
-import { RedisModule } from '../redis/redis.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Admin, AdminSchema } from '../schemas/admin.schema';
 import { JwtModule } from '@nestjs/jwt';
@@ -10,7 +9,6 @@ import { JwtStrategy } from '../strategies/jwt.strategy';
 
 @Module({
   imports: [
-    RedisModule,
     PassportModule,
     MongooseModule.forFeature([{ name: Admin.name, schema: AdminSchema }]),
     JwtModule.register({

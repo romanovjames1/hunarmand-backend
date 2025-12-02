@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { RedisService } from '../redis/redis.service';
+// import { RedisService } from '../redis/redis.service';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Category } from '../schemas/category.schema';
@@ -22,7 +22,7 @@ export class ProductService {
     @InjectModel(Product.name) private productModel: Model<Product>,
     @InjectModel(Category.name) private catModel: Model<Category>,
 
-    private redis: RedisService,
+    // private redis: RedisService,
     private cloudinaryService: CloudinaryService,
   ) {}
   async create(
@@ -68,7 +68,7 @@ export class ProductService {
       category: categoryExists,
     });
 
-    await this.redis.delWithPrefix('products');
+    // await this.redis.delWithPrefix('products');
     return createdProduct;
   }
 
@@ -95,12 +95,12 @@ export class ProductService {
     }
     let products: any[];
     let productsCount: number;
-    const cacheProducts = await this.redis.get(
-      `products:page:${page}:${limit}:${language}:${q}:${categoryId}`,
-    );
-    const cacheProductsCount = await this.redis.get(
-      `products:count:${language}:${page}:${language}:${q}:${categoryId}`,
-    );
+    // const cacheProducts = await this.redis.get(
+    //   `products:page:${page}:${limit}:${language}:${q}:${categoryId}`,
+    // );
+    // const cacheProductsCount = await this.redis.get(
+    //   `products:count:${language}:${page}:${language}:${q}:${categoryId}`,
+    // );
 
     let whereOptions = {};
     if (q) {
@@ -126,30 +126,30 @@ export class ProductService {
         .exec(),
     ]);
 
-    if (cacheProducts && cacheProductsCount) {
-      products = JSON.parse(cacheProducts);
-      productsCount = +cacheProductsCount;
-    } else {
-      products = productsDb;
-      productsCount = productsCountDb;
-    }
+    // if (cacheProducts && cacheProductsCount) {
+    //   products = JSON.parse(cacheProducts);
+    //   productsCount = +cacheProductsCount;
+    // } else {
+    products = productsDb;
+    productsCount = productsCountDb;
+    // }
 
     if (productsDb.length === 0)
       throw new NotFoundException('No products found');
 
-    if (productsDb.length > 0 && productsCountDb >= 1) {
-      await this.redis.set(
-        `products:page:${page}:${limit}:${language}:${q}:${categoryId}`,
-        productsDb,
-        60,
-      );
+    // if (productsDb.length > 0 && productsCountDb >= 1) {
+    //   await this.redis.set(
+    //     `products:page:${page}:${limit}:${language}:${q}:${categoryId}`,
+    //     productsDb,
+    //     60,
+    //   );
 
-      await this.redis.set(
-        `products:count:${language}:${page}:${language}:${q}:${categoryId}`,
-        productsCountDb,
-        60,
-      );
-    }
+    //   await this.redis.set(
+    //     `products:count:${language}:${page}:${language}:${q}:${categoryId}`,
+    //     productsCountDb,
+    //     60,
+    //   );
+    // }
 
     const totalPages = Math.ceil(productsCount / limit);
     return {
@@ -163,13 +163,13 @@ export class ProductService {
 
   // [GET] product by id
   async findOne(id: string) {
-    const productCache = await this.redis.get(`products:${id}`);
-    if (productCache) return JSON.parse(productCache);
+    // const productCache = await this.redis.get(`products:${id}`);
+    // if (productCache) return JSON.parse(productCache);
 
     const productDb = await this.productModel.findById(id);
     if (!productDb) throw new NotFoundException('No product found at this id');
 
-    await this.redis.set(`products:${id}`, productDb, 60);
+    // await this.redis.set(`products:${id}`, productDb, 60);
 
     return productDb;
   }
@@ -237,7 +237,7 @@ export class ProductService {
       },
     );
 
-    await this.redis.delWithPrefix('products');
+    // await this.redis.delWithPrefix('products');
     return updatedProduct;
   }
 
@@ -246,7 +246,7 @@ export class ProductService {
 
     await this.productModel.findOneAndDelete({ _id: id });
 
-    await this.redis.delWithPrefix('products');
+    // await this.redis.delWithPrefix('products');
 
     return `Successfully deleted`;
   }

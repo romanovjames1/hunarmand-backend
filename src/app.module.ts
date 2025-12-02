@@ -10,8 +10,6 @@ import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis'
 import Redis from 'ioredis';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CategoryModule } from './category/category.module';
-import { RedisModule } from './redis/redis.module';
-import { GuardMiddleware } from './middlewares/nestjs.middleware';
 
 @Module({
   imports: [
@@ -42,7 +40,6 @@ import { GuardMiddleware } from './middlewares/nestjs.middleware';
       ),
     }),
     CategoryModule,
-    RedisModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
@@ -52,8 +49,4 @@ import { GuardMiddleware } from './middlewares/nestjs.middleware';
     },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(GuardMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}

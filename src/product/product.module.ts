@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { ProductController } from './product.controller';
 import { ConfigModule } from '@nestjs/config';
-import { RedisModule } from '../redis/redis.module';
 import { JwtModule } from '@nestjs/jwt';
 import { MulterModule } from '@nestjs/platform-express';
 import { multerConfig, multerOptions } from '../multer/multer.options';
@@ -18,7 +17,6 @@ import { Product, ProductSchema } from '../schemas/products.schema';
       { name: Category.name, schema: CatSchema },
     ]),
     CloudinaryModule,
-    RedisModule,
     MulterModule.register({ ...multerConfig, ...multerOptions }),
   ],
   controllers: [ProductController],
