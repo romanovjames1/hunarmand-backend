@@ -1,43 +1,50 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { Types } from 'mongoose';
-import { Category } from './category.schema';
-import { Languages } from 'src/enums/language.enum';
+// src/product/schemas/product.schema.ts
 
-@Schema()
+import { Schema, Prop, SchemaFactory } from '@nestjs/mongoose';
+import { HydratedDocument, Types } from 'mongoose';
+import {
+  ProductTranslation,
+  ProductTranslationSchema,
+} from './product-translation.schema';
+
+export type ProductDocument = HydratedDocument<Product>;
+
+@Schema({
+  timestamps: true,
+  collection: 'products',
+})
 export class Product {
-  @Prop({ required: true })
-  title: string;
-  @Prop({ required: true })
-  description: string;
-
   @Prop({ required: true })
   price: number;
 
-  @Prop({
-    required: true,
-  })
+  @Prop({ required: true })
   thumbnail: string;
+
   @Prop({ required: true })
   images: string[];
+
   @Prop({ required: true })
   color: string;
-  @Prop({
-    required: true,
-  })
+
+  @Prop({ required: true })
   size: string;
-  @Prop({
-    required: true,
-  })
+
+  @Prop({ required: true })
   stockQuantity: number;
 
-  @Prop({ type: Types.ObjectId, ref: 'Product', required: true })
-  category: Category;
+  @Prop({ type: Types.ObjectId, ref: 'Category', required: true })
+  category: Types.ObjectId;
+
   @Prop({
-    type: String,
-    enum: Languages,
+    type: [ProductTranslationSchema],
     required: true,
+    validate: {
+      validator: (translations: ProductTranslation[]) =>
+        translations.length > 0,
+      message: 'At least one translation is required.',
+    },
   })
-  language: Languages;
+  translations: ProductTranslation[];
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);

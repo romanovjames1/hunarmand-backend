@@ -1,114 +1,107 @@
+// src/product/dto/update-product.dto.ts
+
 import { PartialType } from '@nestjs/mapped-types';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CreateProductDto } from './create-product.dto';
-import { ApiProperty } from '@nestjs/swagger';
 import {
-  IsEnum,
-  IsNotEmpty,
-  IsNumber,
+  IsArray,
   IsOptional,
+  ValidateNested,
   IsString,
+  IsNumber,
+  IsMongoId,
+  Min,
 } from 'class-validator';
-import { Languages } from 'src/enums/language.enum';
+import { Transform, Type } from 'class-transformer';
+import { UpdateProductTranslationDto } from 'src/product-translation/dto/update-product-translation.dto';
+import { PartialProductTranslationDto } from './partial.update.product.dto';
+import { UpdateProductType } from './product.types';
 
-export class UpdateProductDto extends PartialType(CreateProductDto) {
-  @ApiProperty({
-    type: 'string',
-    example: 'Some pill or product',
-    description: 'Product title',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  title?: string;
-
-  @ApiProperty({
-    type: 'string',
-    example: 'This product is so good. Doctors always prefer that.',
-    description: 'Product description',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @ApiProperty({
+export class UpdateProductDto implements UpdateProductType {
+  @ApiPropertyOptional({
     type: 'number',
-    description: 'Product price',
-    example: 100,
+    description: 'The updated product price.',
+    example: 120.99,
     required: false,
   })
-  @IsNumber()
-  @IsNotEmpty()
+  @IsNumber({}, { message: 'Price must be a number.' })
+  @Min(0, { message: 'Price cannot be negative.' })
+  @Transform(({ value }) => {
+    if (typeof value === 'string' && value) return Number(value);
+    return value;
+  })
+  @IsOptional()
   price?: number;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: 'string',
-    description: 'Product color',
-    example: 'black',
+    format: 'binary',
+    required: false,
+    description: 'update product thumbnail',
+  })
+  thumbnail?: Express.Multer.File;
+
+  @ApiPropertyOptional({
+    type: 'array',
+    items: { type: 'string', format: 'binary' },
+    required: false,
+    description: 'update product image',
+  })
+  images?: Express.Multer.File[];
+
+  @ApiPropertyOptional({
+    type: 'string',
+    example: '60c1d636b0f1b2001c8c4a9d',
+    description: 'The Mongoose ObjectId of the new parent Category.',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @IsMongoId({ message: 'Category ID must be a valid Mongo ObjectId.' })
+  categoryId?: string;
+
+  @ApiPropertyOptional({
+    type: 'string',
+    description: 'Updated color.',
     required: false,
   })
   @IsString()
   @IsOptional()
   color?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: 'string',
-    description: 'Product size',
-    example: 'XL',
+    description: 'Updated size.',
     required: false,
   })
   @IsString()
   @IsOptional()
   size?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: 'number',
-    description: 'Product stock quantity',
-    example: 10,
+    description: 'Updated stock quantity.',
+    example: 5,
     required: false,
   })
-  @IsNumber()
+  @IsNumber({}, { message: 'Stock quantity must be a number.' })
+  @Min(0, { message: 'Stock quantity cannot be negative.' })
+  @Transform(({ value }) => {
+    if (typeof value === 'string' && value) return Number(value);
+  })
   @IsOptional()
   stockQuantity?: number;
 
-  @ApiProperty({
-    type: 'string',
-    format: 'binary',
-    description: 'Product thumbnail image',
-    required: false,
-  })
-  @IsOptional()
-  thumbnail?: Express.Multer.File;
+  @ApiPropertyOptional({
+    type: [UpdateProductTranslationDto],
 
-  @ApiProperty({
-    isArray: true,
-    type: 'string',
-    format: 'binary',
-    description: 'Product images',
+    description:
+      'Optional array of translations to update. Each object MUST include the `language` key to identify the record to update.',
     required: false,
   })
+  @IsArray({ message: 'Translations must be an array.' })
+  @ValidateNested({ each: true })
+  @Type(() => PartialProductTranslationDto)
   @IsOptional()
-  images?: Express.Multer.File[];
-
-  @ApiProperty({
-    type: 'string',
-    example: '691548030b8a94277082630e',
-    description: 'Product category',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  categoryId?: string;
-
-  @ApiProperty({
-    type: 'string',
-    enum: Languages,
-    default: Languages.UZ,
-    description: 'Product language',
-    required: false,
-  })
-  @IsEnum(Languages)
-  @IsString()
-  @IsOptional()
-  language?: Languages;
+  translations?: PartialProductTranslationDto[];
 }

@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as bodyParser from 'body-parser';
 
 export async function createNestServer() {
   const app = await NestFactory.create(AppModule);
@@ -11,6 +12,9 @@ export async function createNestServer() {
 async function bootstrap() {
   if (!process.env.VERCEL) {
     const app = await createNestServer();
+
+    app.use(bodyParser.json({ limit: '50mb' }));
+    app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
     app.enableCors();
     app.useGlobalPipes(
       new ValidationPipe({

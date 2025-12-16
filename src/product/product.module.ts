@@ -7,17 +7,25 @@ import { MulterModule } from '@nestjs/platform-express';
 import { multerConfig, multerOptions } from '../multer/multer.options';
 import { CloudinaryModule } from '../cloudinary/cloudinary.module';
 import { MongooseModule } from '@nestjs/mongoose';
-import { Category, CatSchema } from '../schemas/category.schema';
+import { Category, CategorySchema } from '../schemas/category.schema';
 import { Product, ProductSchema } from '../schemas/products.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: Product.name, schema: ProductSchema },
-      { name: Category.name, schema: CatSchema },
+      { name: Category.name, schema: CategorySchema },
     ]),
     CloudinaryModule,
-    MulterModule.register({ ...multerConfig, ...multerOptions }),
+    MulterModule.register({
+      ...multerConfig,
+      ...{
+        limits: {
+          fileSize: 1024 * 1024 * 25, // 25 MB
+        },
+      },
+      ...multerOptions,
+    }),
   ],
   controllers: [ProductController],
   providers: [ProductService],

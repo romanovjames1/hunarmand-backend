@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -9,12 +10,13 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { InjectModel } from '@nestjs/mongoose';
 import { Category } from '../schemas/category.schema';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Product } from '../schemas/products.schema';
 import { PaginationDto } from '../dtos/pagination.query.dto';
 import { ApiBadRequestResponse } from '@nestjs/swagger';
 import prismaConfig from 'prisma.config';
 import { ProductModule } from './product.module';
+import { PartialProductTranslationDto } from './dto/partial.update.product.dto';
 
 @Injectable()
 export class ProductService {
@@ -22,155 +24,134 @@ export class ProductService {
     @InjectModel(Product.name) private productModel: Model<Product>,
     @InjectModel(Category.name) private catModel: Model<Category>,
 
-    // private redis: RedisService,
     private cloudinaryService: CloudinaryService,
   ) {}
   async create(
     createProductDto: CreateProductDto,
     files: { thumbnail: Express.Multer.File; images: Express.Multer.File[] },
   ) {
-    if (files.images.length > 3)
-      throw new BadRequestException('Images can only be upload 3 per product');
-    createProductDto.price = Number(createProductDto.price);
-    createProductDto.stockQuantity = Number(createProductDto.stockQuantity);
+    const MAX_IMAGES = 3;
 
-    const categoryExists = await this.catModel.findById(
-      createProductDto.categoryId,
-    );
-    if (!categoryExists)
-      throw new NotFoundException('Category not found at this id');
-    const thumbnailUrl = await this.cloudinaryService
-      .uploadImage(files.thumbnail[0])
-      .then((data) => {
-        return data.secure_url;
-      })
-      .catch((err) => {
-        throw new BadRequestException('Error while uploading image');
-      });
-    const imageUrls: string[] = [];
-    for (const image of files.images) {
-      const imageUrl = await this.cloudinaryService
-        .uploadImage(image)
-        .then((data) => {
-          return data.secure_url;
-        })
-        .catch((err) => {
-          throw new BadRequestException('Error while uploading image');
-        });
-
-      imageUrls.push(imageUrl);
+    if (files.images.length > MAX_IMAGES) {
+      throw new BadRequestException(
+        `Only ${MAX_IMAGES} extra images can be uploaded per product.`,
+      );
     }
 
-    const createdProduct = await this.productModel.create({
-      ...createProductDto,
-      images: imageUrls,
-      thumbnail: thumbnailUrl,
-      category: categoryExists,
-    });
+    const categoryExists = await this.catModel
+      .findById(createProductDto.categoryId)
+      .exec();
+    if (!categoryExists) {
+      throw new NotFoundException('Category not found at this ID.');
+    }
 
-    // await this.redis.delWithPrefix('products');
-    return createdProduct;
+    try {
+      const thumbnailFile = files.thumbnail[0];
+      const imagesFiles = files.images;
+
+      const thumbnailPromise =
+        this.cloudinaryService.uploadImage(thumbnailFile);
+      const imagesPromises = imagesFiles.map((image) =>
+        this.cloudinaryService.uploadImage(image),
+      );
+
+      const [thumbnailResult, ...imageResults] = await Promise.all([
+        thumbnailPromise,
+        ...imagesPromises,
+      ]);
+
+      const thumbnailUrl = thumbnailResult.secure_url;
+      const imageUrls = imageResults.map((result) => result.secure_url);
+
+      const createdProduct = await this.productModel.create({
+        price: createProductDto.price,
+        color: createProductDto.color,
+        size: createProductDto.size,
+        stockQuantity: createProductDto.stockQuantity,
+        translations: createProductDto.translations,
+        category: new Types.ObjectId(createProductDto.categoryId),
+        thumbnail: thumbnailUrl,
+        images: imageUrls,
+      });
+
+      return createdProduct;
+    } catch (error) {
+      console.log(error);
+      if (error.code === 11000) {
+        throw new BadRequestException('Product with this SKU already exists.');
+      }
+      throw new InternalServerErrorException(
+        'Failed to create product due to an upload or database error.',
+      );
+    }
   }
-
   // [GET] get all producs
   async findAll(query: PaginationDto) {
-    const q = query.q;
-    const page = query.page || 1;
-    const limit = query.limit || 10;
-    const language = query.language;
-    const categoryId = query.categoryId;
+    const { q, page, limit, language, categoryId } = query;
 
-    if (limit < 1 || page < 1)
+    const currentPage = page ? +page : 1;
+    const pageSize = limit ? +limit : 10;
+
+    if (pageSize < 1 || currentPage < 1) {
       throw new BadRequestException(
-        `${limit < 1 ? 'Limit' : 'Page'} is invalid.`,
+        `${pageSize < 1 ? 'Limit' : 'Page'} is invalid.`,
       );
-    const offset = (page - 1) * limit;
+    }
+    const offset = (currentPage - 1) * pageSize;
 
-    let categoryExists: any;
+    const whereOptions: any = {};
+    const translationMatch: any = {};
+
     if (categoryId) {
-      const categoryDb = await this.catModel.findById(categoryId);
-      if (!categoryDb)
-        throw new NotFoundException('Category not found at this id');
-      categoryExists = categoryDb;
+      if (!Types.ObjectId.isValid(categoryId)) {
+        throw new BadRequestException('Invalid Category ID format.');
+      }
+      whereOptions['category'] = new Types.ObjectId(categoryId);
     }
-    let products: any[];
-    let productsCount: number;
-    // const cacheProducts = await this.redis.get(
-    //   `products:page:${page}:${limit}:${language}:${q}:${categoryId}`,
-    // );
-    // const cacheProductsCount = await this.redis.get(
-    //   `products:count:${language}:${page}:${language}:${q}:${categoryId}`,
-    // );
 
-    let whereOptions = {};
+    if (language) {
+      translationMatch['language'] = language;
+    }
+
     if (q) {
-      whereOptions['title'] = q;
+      translationMatch['title'] = { $regex: q, $options: 'i' };
     }
 
-    if (language) whereOptions['language'] = language;
-    if (categoryId) whereOptions['category'] = categoryExists;
+    if (Object.keys(translationMatch).length > 0) {
+      whereOptions['translations'] = { $elemMatch: translationMatch };
+    }
 
-    const [productsCountDb, productsDb] = await Promise.all([
-      this.productModel
-        .countDocuments({
-          ...whereOptions,
-        })
-        .exec(),
+    // --- 3. Execute Queries Concurrently ---
+    const [productsCount, productsDb] = await Promise.all([
+      this.productModel.countDocuments(whereOptions).exec(),
 
       this.productModel
-        .find({
-          ...whereOptions,
-        })
+        .find(whereOptions)
         .skip(offset)
-        .limit(limit)
+        .limit(pageSize)
+
         .exec(),
     ]);
 
-    // if (cacheProducts && cacheProductsCount) {
-    //   products = JSON.parse(cacheProducts);
-    //   productsCount = +cacheProductsCount;
-    // } else {
-    products = productsDb;
-    productsCount = productsCountDb;
-    // }
+    if (productsDb.length === 0 && productsCount === 0) {
+      throw new NotFoundException('No products found matching the criteria.');
+    }
 
-    if (productsDb.length === 0)
-      throw new NotFoundException('No products found');
+    const totalPages = Math.ceil(productsCount / pageSize);
 
-    // if (productsDb.length > 0 && productsCountDb >= 1) {
-    //   await this.redis.set(
-    //     `products:page:${page}:${limit}:${language}:${q}:${categoryId}`,
-    //     productsDb,
-    //     60,
-    //   );
-
-    //   await this.redis.set(
-    //     `products:count:${language}:${page}:${language}:${q}:${categoryId}`,
-    //     productsCountDb,
-    //     60,
-    //   );
-    // }
-
-    const totalPages = Math.ceil(productsCount / limit);
     return {
-      currentPage: +page,
+      currentPage: currentPage,
       totalPages,
-      hasNextPage: page < totalPages,
+      hasNextPage: currentPage < totalPages,
       totalDataCount: productsCount,
-      data: products,
+      data: productsDb,
     };
   }
 
   // [GET] product by id
   async findOne(id: string) {
-    // const productCache = await this.redis.get(`products:${id}`);
-    // if (productCache) return JSON.parse(productCache);
-
     const productDb = await this.productModel.findById(id);
     if (!productDb) throw new NotFoundException('No product found at this id');
-
-    // await this.redis.set(`products:${id}`, productDb, 60);
-
     return productDb;
   }
 
@@ -178,75 +159,188 @@ export class ProductService {
   async update(
     id: string,
     updateProductDto: UpdateProductDto,
-    files?: { thumbnail: Express.Multer.File; images: Express.Multer.File[] },
+    files?: {
+      thumbnail?: Express.Multer.File;
+      images?: Express.Multer.File[];
+    },
   ) {
-    await this.findOne(id);
-
-    updateProductDto.price = updateProductDto.price
-      ? Number(updateProductDto.price)
-      : undefined;
-    updateProductDto.stockQuantity = updateProductDto.stockQuantity
-      ? Number(updateProductDto.stockQuantity)
-      : undefined;
-
-    let category: Category | undefined;
-    if (updateProductDto.categoryId) {
-      const categoryExists = await this.catModel.findById(
-        updateProductDto.categoryId,
-      );
-      if (!categoryExists)
-        throw new NotFoundException('Category not found at this id');
-      category = categoryExists;
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('Invalid product ID format.');
     }
-    const imageUrls: string[] = [];
-    if (files?.images) {
-      for (const image of files.images) {
-        const imageUrl = await this.cloudinaryService
-          .uploadImage(image)
-          .then((data) => {
-            return data.secure_url;
-          })
-          .catch((err) => {
-            throw new BadRequestException('Error while uploading image');
-          });
 
-        imageUrls.push(imageUrl);
+    const { translations, categoryId, ...simpleUpdateData } = updateProductDto;
+
+    const updatePayload: any = { $set: {} };
+    const cleanedSimpleUpdateData = {};
+
+    // Iterate over the simple fields and only keep non-empty, non-null, non-undefined values
+    for (const key in simpleUpdateData) {
+      const value = simpleUpdateData[key];
+
+      // Check if the value is not null, not undefined, and not an empty string
+      if (value !== null && value !== undefined && value !== '') {
+        cleanedSimpleUpdateData[key] = value;
       }
     }
-    let thumbnailUrl: string | undefined;
-    if (files?.thumbnail) {
-      thumbnailUrl = await this.cloudinaryService
-        .uploadImage(files.thumbnail[0])
-        .then((data) => {
-          return data.secure_url;
-        })
-        .catch((err: any) => {
-          throw new BadRequestException('Error while uploading image');
-        });
+    if (Object.keys(cleanedSimpleUpdateData).length > 0) {
+      Object.assign(updatePayload.$set, cleanedSimpleUpdateData);
     }
 
-    const updatedProduct = await this.productModel.findOneAndUpdate(
-      {
-        _id: id,
-      },
-      {
-        ...updateProductDto,
-        images: files?.images ? imageUrls : undefined,
-        thumbnail: thumbnailUrl,
-        category: category,
-      },
-    );
+    if (categoryId) {
+      const categoryExists = await this.catModel.findById(categoryId).exec();
+      if (!categoryExists) {
+        throw new NotFoundException('Category not found at this ID.');
+      }
+      updatePayload.$set.category = new Types.ObjectId(categoryId);
+    }
 
-    // await this.redis.delWithPrefix('products');
-    return updatedProduct;
+    try {
+      const uploadPromises: Promise<any>[] = [];
+
+      const isThumbnailUpdate = files?.thumbnail ? files.thumbnail : false;
+      const isImagesUpdate = (files?.images?.length ?? 0) > 0;
+
+      console.log(files, isThumbnailUpdate);
+      const safeUpload = async (
+        file: Express.Multer.File,
+      ): Promise<{ secure_url: string }> => {
+        const result = await this.cloudinaryService.uploadImage(file);
+
+        if ('secure_url' in result) {
+          return result as { secure_url: string };
+        }
+        throw new InternalServerErrorException(
+          'Cloudinary upload failed for a file.',
+        );
+      };
+
+      if (isThumbnailUpdate) {
+        uploadPromises.push(safeUpload(files!.thumbnail![0]));
+      }
+      if (isImagesUpdate) {
+        files!.images!.forEach((image) => {
+          uploadPromises.push(safeUpload(image));
+        });
+      }
+
+      const results = await Promise.all(uploadPromises);
+
+      let resultIndex = 0;
+
+      console.log(isThumbnailUpdate, isImagesUpdate, 'cheking');
+      if (isThumbnailUpdate) {
+        updatePayload.$set.thumbnail = results[resultIndex++].secure_url;
+      } else {
+        delete updatePayload.$set.thumbnail;
+      }
+
+      if (isImagesUpdate) {
+        const imageUrls = results
+          .slice(resultIndex)
+          .map((res) => res.secure_url);
+        updatePayload.$set.images = imageUrls;
+      } else {
+        delete updatePayload.$set.images;
+      }
+    } catch (e) {
+      console.log(e);
+      if (e instanceof InternalServerErrorException) {
+        throw e;
+      }
+      throw new BadRequestException(
+        'A general error occurred while processing file uploads.',
+      );
+    }
+    let translationUpdateProperties = {};
+    let arrayFiltersToApply: any[] = [];
+    let hasTranslationUpdates = false;
+
+    console.log(translations, '======================');
+    if (translations && translations.length > 0) {
+      translations.forEach((t: PartialProductTranslationDto, index) => {
+        const fieldsToUpdate = Object.keys(t).filter(
+          (key) =>
+            key !== 'language' &&
+            t[key] !== undefined &&
+            (typeof t[key] !== 'string' || t[key].trim() !== ''),
+        );
+
+        if (fieldsToUpdate.length > 0) {
+          const filterName = `t${index}`;
+
+          if (!t.language) {
+            throw new BadRequestException(
+              `Translation object at index ${index} is missing the required 'language' key for identification.`,
+            );
+          }
+
+          arrayFiltersToApply.push({ [`${filterName}.language`]: t.language });
+
+          if (t.title !== undefined && t.title.trim() !== '') {
+            translationUpdateProperties[`translations.$[${filterName}].title`] =
+              t.title;
+            hasTranslationUpdates = true;
+          }
+
+          if (t.description !== undefined && t.description.trim() !== '') {
+            translationUpdateProperties[
+              `translations.$[${filterName}].description`
+            ] = t.description;
+            hasTranslationUpdates = true;
+          }
+        }
+      });
+    }
+
+    if (hasTranslationUpdates) {
+      Object.assign(updatePayload.$set, translationUpdateProperties);
+
+      updatePayload.arrayFilters = arrayFiltersToApply;
+    } else {
+      delete updatePayload.arrayFilters;
+    }
+
+    if (Object.keys(updatePayload.$set).length === 0) {
+      delete updatePayload.$set;
+    }
+
+    if (Object.keys(updatePayload).length === 0) {
+      throw new BadRequestException(
+        'Yangilash uchun yaroqli maydonlar topilmadi.',
+      );
+    }
+    console.log(updatePayload);
+    const isOnlyTranslationUpdate =
+      Object.keys(updatePayload).length === 2 &&
+      updatePayload.$set &&
+      updatePayload.arrayFilters;
+
+    if (isOnlyTranslationUpdate) {
+      console.log('Final $set Content:', updatePayload.$set);
+      const updatedProduct = await this.productModel
+        .findByIdAndUpdate(id, updatePayload.$set, {
+          new: true,
+          arrayFilters: updatePayload.arrayFilters,
+          runValidators: true,
+        })
+        .exec();
+      return updatedProduct;
+    } else {
+      console.log('Final $set Content:', updatePayload.$set);
+      const updatedProduct = await this.productModel
+        .findByIdAndUpdate(id, updatePayload, {
+          new: true,
+          runValidators: true,
+        })
+        .exec();
+      return updatedProduct;
+    }
   }
 
   async remove(id: string) {
     await this.findOne(id);
 
     await this.productModel.findOneAndDelete({ _id: id });
-
-    // await this.redis.delWithPrefix('products');
 
     return `Successfully deleted`;
   }
