@@ -7,12 +7,6 @@ import { GlobalExceptionFilter } from './filters/global.exception.filter';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CategoryModule } from './category/category.module';
-import {
-  AcceptLanguageResolver,
-  HeaderResolver,
-  I18nModule,
-} from 'nestjs-i18n';
-import * as path from 'path';
 
 @Module({
   imports: [
