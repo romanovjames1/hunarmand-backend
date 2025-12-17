@@ -129,7 +129,7 @@ export class ProductService {
         .find(whereOptions)
         .skip(offset)
         .limit(pageSize)
-
+        .populate('category')
         .exec(),
     ]);
 
